@@ -1,11 +1,14 @@
 "use client";
 import { socket } from "@/socket";
 import { useCallback, useEffect, useState } from "react";
+import Peer from "@/service/Peer";
 
 const Room = ({ params }: { params: {id:string} }) => {
-  // console.log("Room: ", params.id);
+
   const [remoteUser, setRemoteUser] = useState<string | null>(null);
   const [startBtnState, setStartBtnState] = useState<boolean>(false);
+  console.log("Peer",Peer);
+  
 
   const handleNewUser = useCallback(
     ({ name, id }: { name: string; id: string }) => {

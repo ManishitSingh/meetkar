@@ -1,5 +1,6 @@
 class PeerService {
   constructor() {
+    if(typeof window !== 'undefined' && window.RTCPeerConnection){
     this.peer = new RTCPeerConnection({
       iceServers: [
         {
@@ -9,8 +10,11 @@ class PeerService {
           ],
         },
       ],
-    });
+    });} else{
+      console.warn("RTCPeerConnection is not supported in this browser");
+    }
   }
+  
   async getAnswer(offer) {
     if (this.peer) {
       await this.peer.setRemoteDescription(offer);
@@ -34,7 +38,9 @@ class PeerService {
       await this.peer.setRemoteDescription(new RTCSessionDescription(ans));
     }
   }
-}
 
-const peerServiceInstance = new PeerService();
-export default peerServiceInstance;
+
+}
+const Peer = new PeerService();
+export default Peer;
+
