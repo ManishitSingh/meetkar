@@ -38,11 +38,20 @@ app.prepare().then(() => {
                 io.to(roomId).emit("joined-user",{name,id:socket.id});
             }
             else{
-                socket.emit("created");
+                socket.emit("full");
             }
 
-            console.log(rooms);
+            // console.log(rooms);
         });
+
+        socket.on("other-user-id",({roomId})=>{
+            const {rooms} = io.sockets.adapter;
+            const room = rooms.get(roomId);
+            console.log("room:",room);
+            const otherSocketIds = Array.from(room).filter(socketId => socketId !== socket.id);
+            console.log("user:",otherSocketIds);
+            socket.emit("other-id",{id:otherSocketIds[0]});
+        })
 
 
 
