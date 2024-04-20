@@ -52,6 +52,9 @@ app.prepare().then(() => {
             console.log("user:",otherSocketIds);
             socket.emit("other-id",{id:otherSocketIds[0]});
         })
+        socket.on("offer",({offer,to})=>{
+            socket.to(to).emit("offer",{offer,from:socket.id});
+        })
 
 
 

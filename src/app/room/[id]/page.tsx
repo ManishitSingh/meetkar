@@ -27,6 +27,10 @@ const Room = ({ params }: { params: {id:string} }) => {
     socket.on("joined-user", handleNewUser);
     socket.emit("other-user-id",{roomId:params.id});
     socket.on("other-id",handleOtherUser);
+    socket.on("offer",({offer,from})=>{
+      console.log("offer received from: ",from);
+      console.log(offer);
+    })
 
     return () => {
       socket.off("joined-user", handleNewUser);
@@ -44,10 +48,12 @@ const Room = ({ params }: { params: {id:string} }) => {
 
         <div className="flex gap-5  justify-center text-red-500">
           <button
-            onClick={() => {
-              setStartBtnState(true);
+            onClick={async() => {
+              const offer = await Peer.getOffer();
+              Peer.setLocalDescription(offer);
+              socket.emit("offer", { offer,to:remoteUser });
+
             }}
-            disabled={remoteUser ? true : false}
           >
             Start
           </button>
