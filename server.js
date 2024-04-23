@@ -47,15 +47,29 @@ app.prepare().then(() => {
         socket.on("other-user-id",({roomId})=>{
             const {rooms} = io.sockets.adapter;
             const room = rooms.get(roomId);
-            console.log("room:",room);
+            // console.log("room:",room);
             const otherSocketIds = Array.from(room).filter(socketId => socketId !== socket.id);
-            console.log("user:",otherSocketIds);
+            // console.log("user:",otherSocketIds);
             socket.emit("other-id",{id:otherSocketIds[0]});
         })
         socket.on("offer",({offer,to})=>{
             socket.to(to).emit("offer",{offer,from:socket.id});
-        })
+        });
+        socket.on("answer",({answer,to})=>{
+            socket.to(to).emit("answer",{answer,from:socket.id});
+        });
 
+        socket.on('nego-start',({offer,to})=>{
+            socket.to(to).emit('nego-start',{offer,from:socket.id});
+        })
+    
+        socket.on('nego-done',({ans,to})=>{
+            socket.to(to).emit('nego-final',{ans,from:socket.id});
+        });
+
+        socket.on("ice-candidate",({candidate,to})=>{
+            socket.to(to).emit("ice-candidate",{candidate,from:socket.id});
+        });
 
 
         socket.on("disconnect", () => {
