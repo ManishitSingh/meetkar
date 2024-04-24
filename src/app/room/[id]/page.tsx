@@ -3,14 +3,14 @@ import { socket } from "@/socket";
 import { useCallback, useEffect, useState } from "react";
 import Peer from "@/service/Peer";
 import ReactPlayer from "react-player";
-import Popup from "reactjs-popup";
-import "reactjs-popup/dist/index.css";
 
 const Room = ({ params }: { params: { id: string } }) => {
   const [remoteUser, setRemoteUser] = useState<string | null>(null);
   const [callNotification, setCallNotification] = useState<boolean>(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [callDetails, setCallDetails] = useState<any>(null);
+  const [didOffer, setDidOffer] = useState<boolean>(false);
 
   const handleNewUser = useCallback(
     ({ name, id }: { name: string; id: string }) => {
@@ -32,6 +32,7 @@ const Room = ({ params }: { params: { id: string } }) => {
       Peer.peer?.addTrack(track, localStream);
     }
   }, [localStream]);
+
   let isNegotiating = false;
 
   const handleNego = useCallback(async () => {
@@ -48,15 +49,11 @@ const Room = ({ params }: { params: { id: string } }) => {
     isNegotiating = true;
 
     try {
-      // Generate a new offer
-
-      // Emit the offer to the remote user
       const offer = await Peer.getOffer();
       socket.emit("nego-start", { offer, to: remoteUser });
     } catch (error) {
       console.error("Error generating offer:", error);
     } finally {
-      // Set the flag back to false after negotiation is complete
       isNegotiating = false;
     }
   }, []);
@@ -78,24 +75,28 @@ const Room = ({ params }: { params: { id: string } }) => {
     socket.on("other-id", handleOtherUser);
 
     socket.on("offer", async ({ offer, from }) => {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      setLocalStream(stream);
-      console.log("offer received from: ", from);
-      console.log(offer);
-      sendStream();
-      const answer = await Peer.getAnswer(offer);
-      socket.emit("answer", { answer, to: from });
-      console.log("local stream", localStream);
+      
+      setCallNotification(true);
+      setCallDetails({ offer, from });
+
+      // const stream = await navigator.mediaDevices.getUserMedia({
+      //   video: true,
+      //   audio: true,
+      // });
+      // setLocalStream(stream);
+      // console.log("offer received from: ", from);
+      // console.log(offer);
+      // sendStream();
+      // const answer = await Peer.getAnswer(offer);
+      // socket.emit("answer", { answer, to: from });
+      // console.log("local stream", localStream);
     });
 
     socket.on("answer", async ({ answer }) => {
       await Peer.setLocalDescription(answer);
       console.log(answer);
       console.log("answer received");
-      // sendStream();
+
     });
 
     Peer.peer?.addEventListener("icecandidate", async (e) => {
@@ -135,7 +136,7 @@ const Room = ({ params }: { params: { id: string } }) => {
       socket.off("answer");
       socket.off("nego-start", handleNegoAnswer);
       socket.off("nego-final", handleNegoFinal);
-      // socket.off('ice-candidate');
+      socket.off("ice-candidate");
       Peer.peer?.removeEventListener("icecandidate", () => {});
       Peer.peer?.removeEventListener("negotiationneeded", () => {});
       Peer.peer?.removeEventListener("connectionstatechange", () => {});
@@ -155,6 +156,46 @@ const Room = ({ params }: { params: { id: string } }) => {
   return (
     <div className="bg-black h-screen w-screen text-white p-4">
       <div className="flex flex-col w-full h-full">
+        <div className=" mx-auto min-w-[250px] rounded-md p-2">
+          {callNotification && (
+            <div className=" text-white p-2">
+              <p>Call from: {remoteUser}</p>
+              <div className="flex gap-2 justify-between px-12 my-2">
+                <button
+                  onClick={async () => {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                      video: true,
+                      audio: true,
+                    });
+                    setLocalStream(stream);
+                    console.log("local stream", localStream);
+                    sendStream();
+                    const answer = await Peer.getAnswer(callDetails.offer);
+                    socket.emit("answer", { answer, to: remoteUser });
+
+                    // setTimeout(async () => {
+                    //   const offer = await Peer.getOffer();
+                    //   socket.emit("offer", { offer, to: remoteUser });
+                    // }, 1000);
+
+                    setCallNotification(false);
+                  }}
+                  className="bg-green-500 px-2 py-1 rounded-md"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => {
+                    setCallNotification(false);
+                  }}
+                  className="bg-red-500 px-2 py-1 rounded-md"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="flex min-h-[400px] gap-4 justify-center">
           <div className="basis-1/2 border h-3/4 my-auto">
             {localStream ? (
@@ -193,6 +234,7 @@ const Room = ({ params }: { params: { id: string } }) => {
               });
               setLocalStream(stream);
               sendStream();
+
               const offer = await Peer.getOffer();
               socket.emit("offer", { offer, to: remoteUser });
             }}
